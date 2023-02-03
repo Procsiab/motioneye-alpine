@@ -1,0 +1,41 @@
+FROM docker.io/arm32v7/alpine:3.17.1 AS builder
+
+COPY qemu-arm-static /usr/bin/
+
+RUN apk add --no-cache \
+        ca-certificates curl python3 py3-distutils-extra \
+        python3-dev curl-dev gcc openssl-dev musl-dev libjpeg-turbo-dev zlib-dev && \
+    curl -sSfO 'https://bootstrap.pypa.io/get-pip.py' && \
+    python3 get-pip.py && rm get-pip.py
+
+RUN printf '%b' '[global]\nextra-index-url=https://www.piwheels.org/simple/\n' | tee /etc/pip.conf > /dev/null
+
+RUN python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    python3 -m pip wheel --index-url https://pypi.python.org/simple --wheel-dir /wheels 'https://github.com/motioneye-project/motioneye/archive/dev.tar.gz'
+
+FROM docker.io/arm32v7/alpine:3.17.1
+LABEL maintainer "Lorenzo Prosseda <lerokamut@gmail.com>"
+
+ENV PYTHONUNBUFFERED 1
+ENV TZ Europe/Rome
+
+RUN apk add --no-cache python3 curl ffmpeg v4l-utils && \
+    apk add motion --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing && \
+    curl -sSfO 'https://bootstrap.pypa.io/get-pip.py' && \
+    python3 get-pip.py && rm get-pip.py && \
+    mkdir -p /etc/motioneye /var/lib/motioneye /var/log/motioneye /run/motioneye && \
+    chown motion:motion /etc/motioneye /var/lib/motioneye /var/log/motioneye /run/motioneye
+
+RUN printf '%b' '[global]\nextra-index-url=https://www.piwheels.org/simple/\n' | tee /etc/pip.conf > /dev/null
+
+COPY --from=builder /wheels /wheels
+RUN python3 -m pip install --no-cache-dir --find-links /wheels motioneye && rm -rf /wheels && \
+    python3 -m pip uninstall -y pip setuptools wheel && \
+    cp /usr/lib/python3.10/site-packages/motioneye/extra/motioneye.conf.sample /etc/motioneye/motioneye.conf
+
+VOLUME ["/etc/motioneye", "/var/lib/motioneye"]
+EXPOSE 8765
+
+RUN rm -rf /usr/bin/qemu-arm-static
+
+ENTRYPOINT ["/bin/sh", "-c", "LANGUAGE=en exec /usr/bin/meyectl startserver -c /etc/motioneye/motioneye.conf"]
