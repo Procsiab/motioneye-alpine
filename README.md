@@ -14,7 +14,7 @@ Run the following command in this repo's directory:
 podman build -f Containerfile.amd64 -t mycompany/motioneye-alpine
 ```
 
-**NOTE**: You may want to use the `Containerfile.aarch64` to produce an image for an ARM64v8 target platform. In that case, the QEMU AARCH64 static binary (`qemu-aarch64-static`) must be in the same folder of the Containerfile.
+**NOTE**: You may want to use the `Containerfile.aarch64` to produce an image for an ARM64v8 target platform. In that case, the package `qemu-aarch64-static` must be installed.
 
 ## Run the Image
 

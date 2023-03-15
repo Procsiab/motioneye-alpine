@@ -1,7 +1,5 @@
 FROM docker.io/arm64v8/alpine:3.17.1 AS builder
 
-COPY qemu-aarch64-static /usr/bin/
-
 RUN apk add --no-cache \
         ca-certificates curl python3 py3-distutils-extra \
         python3-dev curl-dev gcc openssl-dev musl-dev && \
@@ -31,7 +29,5 @@ RUN python3 -m pip install --no-cache-dir --find-links /wheels motioneye && rm -
 
 VOLUME ["/etc/motioneye", "/var/lib/motioneye"]
 EXPOSE 8765
-
-RUN rm -rf /usr/bin/qemu-aarch64-static
 
 ENTRYPOINT ["/bin/sh", "-c", "LANGUAGE=en exec /usr/bin/meyectl startserver -c /etc/motioneye/motioneye.conf"]
